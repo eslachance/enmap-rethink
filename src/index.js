@@ -1,4 +1,4 @@
-var rethink = require('rethinkdbdash');
+var r = require('rethinkdbdash');
 
 class EnmapLevel {
 
@@ -19,8 +19,6 @@ class EnmapLevel {
 
     this.port = options.port || 28015;
     this.host = options.host || 'localhost';
-
-    this.connection = rethink({ servers: [{ host: this.host, port: this.port }] });
   }
 
   /**
@@ -29,6 +27,7 @@ class EnmapLevel {
    * @return {Promise} Returns the defer promise to await the ready state.
    */
   async init(enmap) {
+    this.connection = await r({ servers: [{ host: this.host, port: this.port }] });
     const dbs = await this.connection.dbList().run();
     if (!dbs.includes('enmap')) {
       await this.connection.dbCreate('enmap');
@@ -37,14 +36,16 @@ class EnmapLevel {
     const tables = await this.db.tableList();
     if (tables.includes(this.name)) {
       const data = await this.db.table(this.name).run();
-      for (let i = 0; i < data.length; i++) {
-        enmap.set(data[i].id, data);
-      }
       this.table = this.db.table(this.name);
+      for (let i = 0; i < data.length; i++) {
+        enmap.set(data[i].id, data, false);
+      }
+      console.log(`Loaded ${data.length} rows from Rethink`);
       this.ready();
     } else {
       await this.db.tableCreate(this.name);
       this.table = this.db.table(this.name);
+      console.log('Initialized new table in Rethink');
       this.ready();
     }
     return this.defer;
@@ -61,7 +62,7 @@ class EnmapLevel {
    * Shuts down the underlying persistent enmap database.
    */
   close() {
-    this.connection.close();
+    // this.connection.getPoolMaster().drain();
   }
 
   /**
@@ -76,7 +77,7 @@ class EnmapLevel {
       throw new Error('Level require keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
-    this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false });
+    this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
   }
 
   /**
@@ -91,7 +92,7 @@ class EnmapLevel {
       throw new Error('Level require keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
-    await this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false });
+    await this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
   }
 
   /**
@@ -101,6 +102,10 @@ class EnmapLevel {
    */
   delete(key) {
     this.table.get(key).delete();
+  }
+
+  bulkDelete() {
+    return this.table.delete();
   }
 
   /**
