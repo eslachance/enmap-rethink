@@ -33,19 +33,19 @@ class EnmapLevel {
     if (!dbs.include('enmap')) {
       await this.connection.dbCreate('enmap');
     }
-    const r = this.connection.db('enmap');
-    const tables = await r.tableList();
+    this.db = this.connection.db('enmap');
+    const tables = await this.db.tableList();
     console.log(dbs, tables);
     if (tables.includes(this.name)) {
-      const data = await r.table(this.name).run();
+      const data = await this.db.table(this.name).run();
       for (let i = 0; i < data.length; i++) {
         enmap.set(data[i].id, data);
       }
-      this.table = r.table(this.name);
+      this.table = this.db.table(this.name);
       this.ready();
     } else {
-      await r.tableCreate(this.name);
-      this.table = r.table(this.name);
+      await this.db.tableCreate(this.name);
+      this.table = this.db.table(this.name);
       this.ready();
     }
     return this.defer;
@@ -68,12 +68,12 @@ class EnmapLevel {
   /**
    * 
    * @param {*} key Required. The key of the element to add to the EnMap object. 
-   * If the EnMap is persistent this value MUST be a string or number.
+   * If the EnMap is persistent this value MUST be a string or numbethis.db.
    * @param {*} val Required. The value of the element to add to the EnMap object. 
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    */
   set(key, val) {
-    if (!key || !['String', 'Number'].includes(key.constructor.name)) {
+    if (!key || !['String', 'Number'].includes(key.constructothis.db.name)) {
       throw new Error('Level require keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
@@ -83,12 +83,12 @@ class EnmapLevel {
   /**
    * 
    * @param {*} key Required. The key of the element to add to the EnMap object. 
-   * If the EnMap is persistent this value MUST be a string or number.
+   * If the EnMap is persistent this value MUST be a string or numbethis.db.
    * @param {*} val Required. The value of the element to add to the EnMap object. 
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    */
   async setAsync(key, val) {
-    if (!key || !['String', 'Number'].includes(key.constructor.name)) {
+    if (!key || !['String', 'Number'].includes(key.constructothis.db.name)) {
       throw new Error('Level require keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
