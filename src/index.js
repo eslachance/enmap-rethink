@@ -30,7 +30,7 @@ class EnmapLevel {
    */
   async init(enmap) {
     const dbs = await this.connection.dbList().run();
-    if (!dbs.include('enmap')) {
+    if (!dbs.includes('enmap')) {
       await this.connection.dbCreate('enmap');
     }
     this.db = this.connection.db('enmap');

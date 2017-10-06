@@ -10,7 +10,7 @@
   "author": "Evelyne Lachance <eslachance@gmail.com> (http://evie.codes/)",
   "license": "ISC",
   "dependencies": {
-    "native-level-promise": "^0.1.0"
+    "rethinkdbdash": "^2.3.31"
   },
   "devDependencies": {
     "eslint": "^4.8.0",
