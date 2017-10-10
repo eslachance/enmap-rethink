@@ -38,7 +38,7 @@ class EnmapRethink {
       const data = await this.db.table(this.name).run();
       this.table = this.db.table(this.name);
       for (let i = 0; i < data.length; i++) {
-        enmap.set(data[i].id, data, false);
+        enmap.set(data[i].id, data[i], false);
       }
       console.log(`Loaded ${data.length} rows from Rethink`);
       this.ready();
