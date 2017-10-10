@@ -1,6 +1,6 @@
 var r = require('rethinkdbdash');
 
-class EnmapLevel {
+class EnmapRethink {
 
   constructor(options) {
     this.defer = new Promise((resolve) => {
@@ -38,7 +38,7 @@ class EnmapLevel {
       const data = await this.db.table(this.name).run();
       this.table = this.db.table(this.name);
       for (let i = 0; i < data.length; i++) {
-        enmap.set(data[i].id, data, false);
+        enmap.set(data[i].id, data[i].data, false);
       }
       console.log(`Loaded ${data.length} rows from Rethink`);
       this.ready();
@@ -74,7 +74,7 @@ class EnmapLevel {
    */
   set(key, val) {
     if (!key || !['String', 'Number'].includes(key.constructor.name)) {
-      throw new Error('Level require keys to be strings or numbers.');
+      throw new Error('Rethink requires keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
     this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
@@ -89,7 +89,7 @@ class EnmapLevel {
    */
   async setAsync(key, val) {
     if (!key || !['String', 'Number'].includes(key.constructor.name)) {
-      throw new Error('Level require keys to be strings or numbers.');
+      throw new Error('Rethink requires keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
     await this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
@@ -119,4 +119,4 @@ class EnmapLevel {
 
 }
 
-module.exports = EnmapLevel;
+module.exports = EnmapRethink;

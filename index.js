@@ -1,3 +1,3 @@
-const EnmapLevel = require('./src/index.js');
+const EnmapRethink = require('./src/index.js');
 
-module.exports = EnmapLevel;
+module.exports = EnmapRethink;
