@@ -15,6 +15,7 @@ class EnmapRethink {
 
     if (!options.name) throw new Error('Must provide options.name');
     this.name = options.name;
+    this.dbName = options.dbName || 'enmap';
     this.validateName();
 
     this.port = options.port || 28015;
@@ -29,10 +30,10 @@ class EnmapRethink {
   async init(enmap) {
     this.connection = await r({ servers: [{ host: this.host, port: this.port }] });
     const dbs = await this.connection.dbList().run();
-    if (!dbs.includes('enmap')) {
-      await this.connection.dbCreate('enmap');
+    if (!dbs.includes(this.dbName)) {
+      await this.connection.dbCreate(this.dbName);
     }
-    this.db = this.connection.db('enmap');
+    this.db = this.connection.db(this.dbName);
     const tables = await this.db.tableList();
     if (tables.includes(this.name)) {
       const data = await this.db.table(this.name).run();
