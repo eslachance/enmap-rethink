@@ -35,6 +35,7 @@ class EnmapRethink {
     }
     this.db = this.connection.db(this.dbName);
     const tables = await this.db.tableList();
+    let iData;
     if (tables.includes(this.name)) {
       const data = await this.db.table(this.name).run();
       this.table = this.db.table(this.name);
