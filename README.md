@@ -12,14 +12,14 @@ To install enmap-rethink simply run `npm i enmap-rethink`. You need to have a Re
 // Load Enmap
 const Enmap = require('enmap');
  
-// Load EnmapLevel
+// Load EnmapRethink
 const EnmapRethink = require('enmap-rethink');
  
-// Initialize the leveldb with the name "test" (this is the folder name in ./data)
-const level = new EnmapRethink({ name: 'test' });
+// Initialize the database with the name "test"
+const rethink = new EnmapRethink({ name: 'test' });
  
 // Initialize the Enmap with the provider instance.
-const myColl = new Enmap({ provider: level });
+const myColl = new Enmap({ provider: rethink });
 ```
 
 Shorthand declaration: 
@@ -33,6 +33,16 @@ const myColl = new Enmap({ provider: new EnmapRethink({ name: 'test' }); });
 > Enmap-Rethink will automatically create a separate database (default dbName: `enmap`) when loading, assuming it has permissions to do so.
 
 ## Options
+
+```js
+// Example with all options.
+const rethink = new EnmapRethink({ 
+  name: 'test',
+  dbName: 'enmap',
+  host: 'localhost',
+  port: 28015
+});
+```
 
 ### name
 
