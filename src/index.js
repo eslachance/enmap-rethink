@@ -1,4 +1,4 @@
-var r = require('rethinkdbdash');
+const r = require('rethinkdbdash');
 
 class EnmapRethink {
 
@@ -42,9 +42,9 @@ class EnmapRethink {
       for (let i = 0; i < data.length; i++) {
         // If it is storing an object, parse it correctly
         try {
-            iData = JSON.parse(data[i].data); 
-        } catch(e) {
-            iData = data[i].data; 
+          iData = JSON.parse(data[i].data);
+        } catch (error) {
+          iData = data[i].data;
         }
         enmap.set(data[i].id, iData, false);
       }
@@ -60,13 +60,6 @@ class EnmapRethink {
   }
 
   /**
-   * Internal method used to validate persistent enmap names (valid Windows filenames);
-   */
-  validateName() {
-    this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  }
-
-  /**
    * Shuts down the underlying persistent enmap database.
    */
   close() {
@@ -74,10 +67,10 @@ class EnmapRethink {
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
+   * Set a value to the database.
+   * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
+   * @param {*} val Required. The value of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    */
   set(key, val) {
@@ -89,10 +82,10 @@ class EnmapRethink {
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
+   * Asynchronously ensure a write to the database.
+   * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
+   * @param {*} val Required. The value of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    */
   async setAsync(key, val) {
@@ -104,25 +97,37 @@ class EnmapRethink {
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to delete from the EnMap object. 
-   * @param {boolean} bulk Internal property used by the purge method.  
+   * Delete an entry from the database.
+   * @param {(string|number)} key Required. The key of the element to delete from the EnMap object.
+   * @param {boolean} bulk Internal property used by the purge method.
    */
   delete(key) {
     this.table.get(key).delete();
   }
 
+  /**
+   * Delete all entries from the database
+   * @returns {r.WriteResult}
+   */
   bulkDelete() {
     return this.table.delete();
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to delete from the EnMap object. 
-   * @param {boolean} bulk Internal property used by the purge method.  
+   * Asynchronously ensure an entry deletion from the database.
+   * @param {(string|number)} key Required. The key of the element to delete from the EnMap object.
+   * @param {boolean} bulk Internal property used by the purge method.
    */
   async deleteAsync(key) {
     await this.table.get(key).delete();
+  }
+
+  /**
+   * Internal method used to validate persistent enmap names (valid Windows filenames);
+   * @private
+   */
+  validateName() {
+    this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   }
 
 }
