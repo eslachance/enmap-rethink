@@ -79,10 +79,10 @@ class EnmapProvider {
     return this;
   }
   /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
+   * Set a value to the database.
+   * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
+   * @param {*} val Required. The value of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    * @return {Promise<*>} Promise returned by the database after insertion.
    */
@@ -113,15 +113,12 @@ class EnmapProvider {
     return this.db.get(key);
   }
 
+  /**
+   * Delete all entries from the database
+   * @returns {r.WriteResult}
+   */
   bulkDelete() {
     return this.db.delete();
-  }
-
-  /**
-   * Internal method used to validate persistent enmap names (valid Windows filenames);
-   */
-  validateName() {
-    this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   }
 
   /**
@@ -130,6 +127,14 @@ class EnmapProvider {
    */
   getVersion() {
     return require('./package.json').version;
+  }
+
+  /**
+   * Internal method used to validate persistent enmap names (valid Windows filenames);
+   * @private
+   */
+  validateName() {
+    this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   }
 
 }
