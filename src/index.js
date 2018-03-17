@@ -1,17 +1,11 @@
-var r = require('rethinkdbdash');
+var rethink = require('rethinkdbdash');
 
-class EnmapRethink {
+class EnmapProvider {
 
   constructor(options) {
     this.defer = new Promise((resolve) => {
       this.ready = resolve;
     });
-
-    this.features = {
-      multiProcess: true,
-      complexTypes: true,
-      keys: 'multiple'
-    };
 
     if (!options.name) throw new Error('Must provide options.name');
     this.name = options.name;
@@ -28,35 +22,99 @@ class EnmapRethink {
    * @return {Promise} Returns the defer promise to await the ready state.
    */
   async init(enmap) {
-    this.connection = await r({ servers: [{ host: this.host, port: this.port }] });
+    this.enmap = enmap;
+    this.connection = await rethink({ servers: [{ host: this.host, port: this.port }], silent: true });
     const dbs = await this.connection.dbList().run();
     if (!dbs.includes(this.dbName)) {
       await this.connection.dbCreate(this.dbName);
     }
-    this.db = this.connection.db(this.dbName);
-    const tables = await this.db.tableList();
-    let iData;
-    if (tables.includes(this.name)) {
-      const data = await this.db.table(this.name).run();
-      this.table = this.db.table(this.name);
-      for (let i = 0; i < data.length; i++) {
-        // If it is storing an object, parse it correctly
-        try {
-            iData = JSON.parse(data[i].data); 
-        } catch(e) {
-            iData = data[i].data; 
-        }
-        enmap.set(data[i].id, iData, false);
-      }
-      console.log(`Loaded ${data.length} rows from Rethink`);
+    this.connection = this.connection.db(this.dbName);
+    const tables = await this.connection.tableList();
+    if (!tables.includes(this.name)) {
+      await this.connection.tableCreate(this.name);
+    }
+    this.db = this.connection.table(this.name);
+    if (this.fetchAll) {
+      await this.fetchEverything();
       this.ready();
     } else {
-      await this.db.tableCreate(this.name);
-      this.table = this.db.table(this.name);
-      console.log('Initialized new table in Rethink');
       this.ready();
     }
     return this.defer;
+  }
+
+  /**
+   * Shuts down the underlying persistent enmap database.
+   * @return {Promise<*>} The promise of the database closing operation.
+   */
+  close() {
+    return this.connection.getPoolMaster().drain();
+  }
+
+  /**
+   * Fetches a specific key or array of keys from the database, adds it to the EnMap object, and returns its value.
+   * @param {(string|number)} key The key to retrieve from the database.
+   * @return {Promise<*>} The value obtained from the database. 
+   */
+  async fetch(key) {
+    const row = await this.db.get(key).run();
+    if (row) this.enmap.set(key, row.value);
+    return Promise.resolve(row.data);
+  }
+
+  /** 
+   * Fetches all non-cached values from the database, and adds them to the enmap.
+   * @return {Promise<Map>} The promise of a cached Enmap.
+  */
+  async fetchEverything() {
+    const data = await this.db.run();
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      let parsedValue = row.data;
+      if (row.value[0] === '[' || row.value[0] === '{') {
+        parsedValue = JSON.parse(row.value);
+      }
+      this.enmap.set(row.id, parsedValue, false);
+    }
+    return this;
+  }
+  /**
+   * 
+   * @param {*} key Required. The key of the element to add to the EnMap object. 
+   * If the EnMap is persistent this value MUST be a string or number.
+   * @param {*} val Required. The value of the element to add to the EnMap object. 
+   * If the EnMap is persistent this value MUST be stringifiable as JSON.
+   * @return {Promise<*>} Promise returned by the database after insertion.
+   */
+  set(key, val) {
+    if (!key || !['String', 'Number'].includes(key.constructor.name)) {
+      throw new Error('Rethink requires keys to be strings or numbers.');
+    }
+    const insert = typeof val === 'object' ? JSON.stringify(val) : val;
+    return this.db.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
+  }
+
+  /**
+   * 
+   * @param {*} key Required. The key of the element to delete from the EnMap object. 
+   * @param {boolean} bulk Internal property used by the purge method.
+   * @return {Promise<*>} Promise returned by the database after deletion
+   */
+  delete(key) {
+    return this.db.get(key).delete();
+  }
+
+  /**
+   * Checks if a key is present in the database (used when not all rows are fetched).
+   * @param {(string|number)} key Required. The key of the element we're checking in the database.
+   * @return {Promise<boolean>} Whether the key exists in the database.
+   */
+  hasAsync(key) {
+    return this.db.get(key);
+  }
+
+  bulkDelete() {
+    return this.db.delete();
   }
 
   /**
@@ -67,64 +125,13 @@ class EnmapRethink {
   }
 
   /**
-   * Shuts down the underlying persistent enmap database.
+   * Internal method used by Enmap to retrieve provider's correct version.
+   * @return {string} Current version number.
    */
-  close() {
-    // this.connection.getPoolMaster().drain();
-  }
-
-  /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
-   * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
-   * If the EnMap is persistent this value MUST be stringifiable as JSON.
-   */
-  set(key, val) {
-    if (!key || !['String', 'Number'].includes(key.constructor.name)) {
-      throw new Error('Rethink requires keys to be strings or numbers.');
-    }
-    const insert = typeof val === 'object' ? JSON.stringify(val) : val;
-    this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
-  }
-
-  /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
-   * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
-   * If the EnMap is persistent this value MUST be stringifiable as JSON.
-   */
-  async setAsync(key, val) {
-    if (!key || !['String', 'Number'].includes(key.constructor.name)) {
-      throw new Error('Rethink requires keys to be strings or numbers.');
-    }
-    const insert = typeof val === 'object' ? JSON.stringify(val) : val;
-    await this.table.insert({ id: key, data: insert }, { conflict: 'replace', returnChanges: false }).catch(console.error);
-  }
-
-  /**
-   * 
-   * @param {*} key Required. The key of the element to delete from the EnMap object. 
-   * @param {boolean} bulk Internal property used by the purge method.  
-   */
-  delete(key) {
-    this.table.get(key).delete();
-  }
-
-  bulkDelete() {
-    return this.table.delete();
-  }
-
-  /**
-   * 
-   * @param {*} key Required. The key of the element to delete from the EnMap object. 
-   * @param {boolean} bulk Internal property used by the purge method.  
-   */
-  async deleteAsync(key) {
-    await this.table.get(key).delete();
+  getVersion() {
+    return require('./package.json').version;
   }
 
 }
 
-module.exports = EnmapRethink;
+module.exports = EnmapProvider;
