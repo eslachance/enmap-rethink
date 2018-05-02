@@ -71,8 +71,8 @@ class EnmapProvider {
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       let parsedValue = row.data;
-      if (row.value[0] === '[' || row.value[0] === '{') {
-        parsedValue = JSON.parse(row.value);
+      if (row.data[0] === '[' || row.data[0] === '{') {
+        parsedValue = JSON.parse(row.data);
       }
       this.enmap.set(row.id, parsedValue, false);
     }
