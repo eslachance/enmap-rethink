@@ -40,6 +40,17 @@ class EnmapProvider {
     } else {
       this.ready();
     }
+    // Map.prototype.set.call(enmap, data)
+    const feed = await this.db.changes().run();
+    feed.each((err, change) => {
+      if (err) return;
+      const { old_val: oldVal, new_val: newVal } = change;
+      if (newVal) {
+        Map.prototype.set.call(enmap, newVal.data);
+      } else {
+        Map.prototype.delete.call(enmap, oldVal.id);
+      }
+    });
     return this.defer;
   }
 
@@ -74,7 +85,7 @@ class EnmapProvider {
       if (row.data[0] === '[' || row.data[0] === '{') {
         parsedValue = JSON.parse(row.data);
       }
-      this.enmap.set(row.id, parsedValue, false);
+      Map.prototype.set.call(this.enmap, parsedValue);
     }
     return this;
   }
